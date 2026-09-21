@@ -1,3 +1,21 @@
+# obsidian-calendar-task-plugin
+
+Fork of [liamcain/obsidian-calendar-plugin](https://github.com/liamcain/obsidian-calendar-plugin) by Liam Cain. All calendar, daily-note and weekly-note behavior comes from the original plugin; this fork adds task tracking on top of it.
+
+## What this fork adds
+
+- **Task spans as dots.** Task lines in daily notes (Tasks plugin emoji format) are indexed. A done task shows one dot on each day from its ⏳ scheduled date (or the note date when there is none) to its ✅ done date. An open task shows a hollow dot on today, or on its ⏳ date when that is still ahead.
+- **Task panel.** A plain click on a day lists the tasks of that day below the calendar. Clicking a task opens the source note at that line. Cmd/Ctrl-click opens or creates the daily note as before.
+- Word-count dots are removed.
+
+## Install
+
+This plugin is not in the community list. Install it with [BRAT](https://github.com/TfTHacker/obsidian42-brat): run `BRAT: Add a beta plugin for testing` and enter `Jim876633/obsidian-calendar-task-plugin`.
+
+---
+
+The original README follows.
+
 # obsidian-calendar-plugin
 
 This plugin for [Obsidian](https://obsidian.md/) creates a simple Calendar view for visualizing and navigating between your daily notes.
