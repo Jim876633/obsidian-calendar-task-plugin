@@ -6,7 +6,7 @@ import {
   getWeeklyNote,
   getWeeklyNoteSettings,
 } from "obsidian-daily-notes-interface";
-import { FileView, TFile, ItemView, WorkspaceLeaf } from "obsidian";
+import { debounce, FileView, TFile, ItemView, WorkspaceLeaf } from "obsidian";
 import { get } from "svelte/store";
 
 import { TRIGGER_ON_OPEN, VIEW_TYPE_CALENDAR } from "src/constants";
@@ -16,17 +16,26 @@ import type { ISettings } from "src/settings";
 
 import Calendar from "./ui/Calendar.svelte";
 import { showFileMenu } from "./ui/fileMenu";
-import { activeFile, dailyNotes, weeklyNotes, settings } from "./ui/stores";
 import {
-  customTagsSource,
-  streakSource,
-  tasksSource,
-  wordCountSource,
-} from "./ui/sources";
+  activeFile,
+  dailyNotes,
+  taskIndex,
+  weeklyNotes,
+  settings,
+} from "./ui/stores";
+import { customTagsSource, streakSource, tasksSource } from "./ui/sources";
+import { TaskPanel } from "./ui/taskPanel";
 
 export default class CalendarView extends ItemView {
   private calendar: Calendar;
+  private taskPanel: TaskPanel;
   private settings: ISettings;
+  // Coalesces bursts of vault events into one full task reindex.
+  private scheduleTaskReindex = debounce(
+    () => taskIndex.reindex(),
+    300,
+    true
+  );
 
   constructor(leaf: WorkspaceLeaf) {
     super(leaf);
@@ -58,6 +67,8 @@ export default class CalendarView extends ItemView {
     this.registerEvent(this.app.vault.on("modify", this.onFileModified));
     this.registerEvent(this.app.workspace.on("file-open", this.onFileOpen));
 
+    this.registerEvent(this.app.vault.on("rename", this.onFileCreated));
+
     this.settings = null;
     settings.subscribe((val) => {
       this.settings = val;
@@ -85,18 +96,16 @@ export default class CalendarView extends ItemView {
     if (this.calendar) {
       this.calendar.$destroy();
     }
+    if (this.taskPanel) {
+      this.removeChild(this.taskPanel);
+    }
     return Promise.resolve();
   }
 
   async onOpen(): Promise<void> {
     // Integration point: external plugins can listen for `calendar:open`
     // to feed in additional sources.
-    const sources = [
-      customTagsSource,
-      streakSource,
-      wordCountSource,
-      tasksSource,
-    ];
+    const sources = [customTagsSource, streakSource, tasksSource];
     this.app.workspace.trigger(TRIGGER_ON_OPEN, sources);
 
     this.calendar = new Calendar({
@@ -112,6 +121,17 @@ export default class CalendarView extends ItemView {
         sources,
       },
     });
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    this.taskPanel = new TaskPanel(this.app, (this as any).contentEl);
+    this.addChild(this.taskPanel);
+    this.register(
+      taskIndex.subscribe((index) => {
+        this.taskPanel.setIndex(index);
+        this.calendar.tick();
+      })
+    );
+    this.register(dailyNotes.subscribe(() => this.scheduleTaskReindex()));
   }
 
   onHoverDay(
@@ -194,6 +214,9 @@ export default class CalendarView extends ItemView {
   }
 
   private async onFileModified(file: TFile): Promise<void> {
+    if (getDateFromFile(file, "day")) {
+      this.scheduleTaskReindex();
+    }
     const date = getDateFromFile(file, "day") || getDateFromFile(file, "week");
     if (date && this.calendar) {
       this.calendar.tick();
@@ -286,13 +309,22 @@ export default class CalendarView extends ItemView {
     date: Moment,
     inNewSplit: boolean
   ): Promise<void> {
+    // Plain click shows the day's tasks; Cmd/Ctrl-click opens the note
+    // in the current leaf, as a plain click did upstream.
+    if (!inNewSplit) {
+      activeFile.setDate(date);
+      this.taskPanel.showDate(date);
+      this.calendar.tick();
+      return;
+    }
+
     const { workspace } = this.app;
     const existingFile = getDailyNote(date, get(dailyNotes));
     if (!existingFile) {
       // File doesn't exist
       tryToCreateDailyNote(
         date,
-        inNewSplit,
+        false,
         this.settings,
         (dailyNote: TFile) => {
           activeFile.setFile(dailyNote);
@@ -303,10 +335,8 @@ export default class CalendarView extends ItemView {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const mode = (this.app.vault as any).getConfig("defaultViewMode");
-    const leaf = inNewSplit
-      ? workspace.splitActiveLeaf()
-      : workspace.getUnpinnedLeaf();
-    await leaf.openFile(existingFile, { active : true, mode });
+    const leaf = workspace.getUnpinnedLeaf();
+    await leaf.openFile(existingFile, { active: true, mode });
 
     activeFile.setFile(existingFile);
   }
