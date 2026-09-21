@@ -1,6 +1,6 @@
 {
   "name": "calendar-tasks",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Calendar view of your daily notes",
   "author": "liamcain",
   "main": "main.js",

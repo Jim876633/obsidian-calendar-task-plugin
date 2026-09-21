@@ -2,7 +2,7 @@
   "id": "calendar-tasks",
   "name": "Calendar Tasks",
   "description": "Calendar view of your daily notes with task spans and a per-day task list",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": "Jim Huang",
   "authorUrl": "https://github.com/Jim876633",
   "isDesktopOnly": false,
