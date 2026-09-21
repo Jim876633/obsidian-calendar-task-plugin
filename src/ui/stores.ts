@@ -3,11 +3,15 @@ import {
   getAllDailyNotes,
   getAllWeeklyNotes,
 } from "obsidian-daily-notes-interface";
-import { writable } from "svelte/store";
+import { get, writable } from "svelte/store";
 
+import { buildTaskIndex } from "src/io/tasks";
+import type { TaskIndex } from "src/io/tasks";
 import { defaultSettings, ISettings } from "src/settings";
 
 import { getDateUIDFromFile } from "./utils";
+import type { Moment } from "moment";
+import { getDateUID } from "obsidian-daily-notes-interface";
 
 function createDailyNotesStore() {
   let hasError = false;
@@ -65,8 +69,23 @@ function createSelectedFileStore() {
       const id = getDateUIDFromFile(file);
       store.set(id);
     },
+    setDate: (date: Moment) => {
+      store.set(getDateUID(date, "day"));
+    },
     ...store,
   };
 }
 
 export const activeFile = createSelectedFileStore();
+
+function createTaskIndexStore() {
+  const store = writable<TaskIndex>(null);
+  return {
+    reindex: async (): Promise<void> => {
+      store.set(await buildTaskIndex(get(dailyNotes) ?? {}));
+    },
+    ...store,
+  };
+}
+
+export const taskIndex = createTaskIndexStore();
