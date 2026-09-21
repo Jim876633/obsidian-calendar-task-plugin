@@ -1,11 +1,10 @@
 {
-  "id": "calendar",
-  "name": "Calendar",
-  "description": "Calendar view of your daily notes",
-  "version": "1.5.10",
-  "author": "Liam Cain",
-  "authorUrl": "https://github.com/liamcain/",
-  "fundingUrl": "https://www.buymeacoffee.com/liamcain",
+  "id": "calendar-tasks",
+  "name": "Calendar Tasks",
+  "description": "Calendar view of your daily notes with task spans and a per-day task list",
+  "version": "1.0.0",
+  "author": "Jim Huang",
+  "authorUrl": "https://github.com/Jim876633",
   "isDesktopOnly": false,
   "minAppVersion": "0.9.11"
 }
