@@ -10,7 +10,13 @@
   import { onDestroy } from "svelte";
 
   import type { ISettings } from "src/settings";
-  import { activeFile, dailyNotes, settings, weeklyNotes } from "./stores";
+  import {
+    activeFile,
+    dailyNotes,
+    settings,
+    taskIndex,
+    weeklyNotes,
+  } from "./stores";
 
   let today: Moment;
 
@@ -37,8 +43,16 @@
   }
 
   // 1 minute heartbeat to keep `today` reflecting the current day
+  let lastSeenDay = window.moment().format("YYYY-MM-DD");
   let heartbeat = setInterval(() => {
     tick();
+
+    // Open tasks are indexed on "today", so a new day needs a fresh index.
+    const currentDay = today.format("YYYY-MM-DD");
+    if (currentDay !== lastSeenDay) {
+      lastSeenDay = currentDay;
+      taskIndex.reindex();
+    }
 
     const isViewingCurrentMonth = displayedMonth.isSame(today, "day");
     if (isViewingCurrentMonth) {
